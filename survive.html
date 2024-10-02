@@ -124,7 +124,7 @@
         resizeCanvas();
 
         // Game Elements
-        let player = { x: canvas.width / 2, y: canvas.height / 2, size: 10, color: 'purple', speed: 7 };
+        let player = { x: canvas.width / 2, y: canvas.height / 2, size: 15, color: 'purple', speed: 7 };
         let monsters = [];
         let traps = [];
         const numMonsters = 10;
@@ -154,9 +154,9 @@
             traps = [];
             for (let i = 0; i < numTraps; i++) {
                 let trap = {
-                    x: Math.random() * (canvas.width - 30) + 15,
-                    y: Math.random() * (canvas.height - 30) + 15,
-                    size: 20,
+                    x: Math.random() * (canvas.width - 10) + 15,
+                    y: Math.random() * (canvas.height - 10) + 15,
+                    size: 10,
                     color: 'black'
                 };
                 traps.push(trap);
