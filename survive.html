@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Survival Game</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        #canvas {
+            display: block;
+            margin: auto;
+            background-color: #f0f0f0;
+        }
+        .instructions {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .instructions h1 {
+            margin-bottom: 20px;
+            font-size: 36px;
+        }
+        .instructions p {
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        .instructions button {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #5a5a5a;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .game-over h1 {
+            margin-bottom: 20px;
+            font-size: 36px;
+        }
+        .game-over p {
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        .game-over button {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #5a5a5a;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Instructions Screen -->
+    <div class="instructions" id="instructions">
+        <h1>Survival Game Instructions</h1>
+        <p>You are the <span style="color: purple;">purple circle</span>.</p>
+        <p>Monsters are <span style="color: red;">red snakes</span> chasing you.</p>
+        <p>Avoid traps (black bombs) and lure monsters into them to eliminate them.</p>
+        <p>If a monster or trap touches you, you lose.</p>
+        <p>Kill all the monsters to win!</p>
+        <button onclick="startGame()">Start Game</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div class="game-over" id="gameOver" style="display: none;">
+        <h1 id="gameOverText">Game Over!</h1>
+        <p id="gameOverMessage">You were caught by a monster!</p>
+        <button onclick="restartGame()">Play Again</button>
+    </div>
+
+    <!-- Canvas for Game -->
+    <canvas id="canvas" width="800" height="600"></canvas>
+
+    <!-- Background Music -->
+    <audio id="backgroundMusic" src="https://www.bensound.com/bensound-music/bensound-creativeminds.mp3" loop></audio>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size to window size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Game Elements
+        let player = { x: canvas.width / 2, y: canvas.height / 2, size: 10, color: 'purple', speed: 7 };
+        let monsters = [];
+        let traps = [];
+        const numMonsters = 6;
+        const numTraps = 10;
+        let gameRunning = false;
+        let gameOver = false;
+        let gameOverMessage = "You were caught by a monster!";
+
+        // Initialize Monsters
+        function initMonsters() {
+            monsters = [];
+            for (let i = 0; i < numMonsters; i++) {
+                let monster = {
+                    x: Math.random() * (canvas.width - 60) + 30,
+                    y: Math.random() * (canvas.height - 60) + 30,
+                    width: 60,
+                    height: 20,
+                    color: 'red',
+                    speed: 2
+                };
+                monsters.push(monster);
+            }
+        }
+
+        // Initialize Traps
+        function initTraps() {
+            traps = [];
+            for (let i = 0; i < numTraps; i++) {
+                let trap = {
+                    x: Math.random() * (canvas.width - 30) + 15,
+                    y: Math.random() * (canvas.height - 30) + 15,
+                    size: 20,
+                    color: 'black'
+                };
+                traps.push(trap);
+            }
+        }
+
+        // Draw Player
+        function drawPlayer() {
+            ctx.fillStyle = player.color;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Draw Monsters
+        function drawMonsters() {
+            monsters.forEach(monster => {
+                ctx.fillStyle = monster.color;
+                ctx.fillRect(monster.x, monster.y, monster.width, monster.height);
+            });
+        }
+
+        // Draw Traps
+        function drawTraps() {
+            traps.forEach(trap => {
+                ctx.fillStyle = trap.color;
+                ctx.beginPath();
+                ctx.arc(trap.x, trap.y, trap.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // Move Monsters Towards Player
+        function moveMonsters() {
+            monsters.forEach(monster => {
+                let dx = player.x - (monster.x + monster.width / 2);
+                let dy = player.y - (monster.y + monster.height / 2);
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance > 0) {
+                    monster.x += (dx / distance) * monster.speed;
+                    monster.y += (dy / distance) * monster.speed;
+                }
+            });
+        }
+
+        // Check Collision Between Two Rectangles
+        function rectCollision(r1, r2) {
+            return !(r2.x > r1.x + r1.size ||
+                     r2.x + r2.size < r1.x ||
+                     r2.y > r1.y + r1.size ||
+                     r2.y + r2.size < r1.y);
+        }
+
+        // Check Collision Between Player and Monster
+        function checkPlayerMonsterCollision() {
+            for (let monster of monsters) {
+                let monsterCenter = { x: monster.x + monster.width / 2, y: monster.y + monster.height / 2 };
+                let dx = player.x - monsterCenter.x;
+                let dy = player.y - monsterCenter.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < player.size + Math.max(monster.width, monster.height) / 2) {
+                    gameOver = true;
+                    gameOverMessage = "You were caught by a monster!";
+                }
+            }
+        }
+
+        // Check Collision Between Monster and Trap
+        function checkMonsterTrapCollision() {
+            for (let i = monsters.length - 1; i >= 0; i--) {
+                for (let trap of traps) {
+                    let monsterCenter = { x: monsters[i].x + monsters[i].width / 2, y: monsters[i].y + monsters[i].height / 2 };
+                    let dx = monsterCenter.x - trap.x;
+                    let dy = monsterCenter.y - trap.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < Math.max(monsters[i].width, monsters[i].height) / 2 + trap.size) {
+                        monsters.splice(i, 1); // Remove monster
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Check Collision Between Player and Trap
+        function checkPlayerTrapCollision() {
+            for (let trap of traps) {
+                let dx = player.x - trap.x;
+                let dy = player.y - trap.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < player.size + trap.size) {
+                    gameOver = true;
+                    gameOverMessage = "You stepped on a trap!";
+                }
+            }
+        }
+
+        // Handle Player Movement
+        const keys = {
+            ArrowUp: false,
+            ArrowDown: false,
+            ArrowLeft: false,
+            ArrowRight: false
+        };
+
+        window.addEventListener('keydown', function(e) {
+            if (keys.hasOwnProperty(e.key)) {
+                keys[e.key] = true;
+            }
+        });
+
+        window.addEventListener('keyup', function(e) {
+            if (keys.hasOwnProperty(e.key)) {
+                keys[e.key] = false;
+            }
+        });
+
+        function movePlayer() {
+            if (keys.ArrowUp && player.y - player.speed > player.size) {
+                player.y -= player.speed;
+            }
+            if (keys.ArrowDown && player.y + player.speed < canvas.height - player.size) {
+                player.y += player.speed;
+            }
+            if (keys.ArrowLeft && player.x - player.speed > player.size) {
+                player.x -= player.speed;
+            }
+            if (keys.ArrowRight && player.x + player.speed < canvas.width - player.size) {
+                player.x += player.speed;
+            }
+        }
+
+        // Background Music
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        function playMusic() {
+            backgroundMusic.volume = 0.2;
+            backgroundMusic.play();
+        }
+
+        function stopMusic() {
+            backgroundMusic.pause();
+            backgroundMusic.currentTime = 0;
+        }
+
+        // Game Over Screen
+        const gameOverDiv = document.getElementById('gameOver');
+        const gameOverText = document.getElementById('gameOverText');
+        const gameOverMessageText = document.getElementById('gameOverMessage');
+
+        function showGameOver() {
+            gameOverDiv.style.display = 'flex';
+            gameOverText.textContent = gameOver ? "Game Over!" : "You Win!";
+            gameOverMessageText.textContent = gameOverMessage;
+            stopMusic();
+        }
+
+        // Start Game
+        function startGame() {
+            document.getElementById('instructions').style.display = 'none';
+            gameRunning = true;
+            playMusic();
+            initMonsters();
+            initTraps();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Restart Game
+        function restartGame() {
+            location.reload();
+        }
+
+        // Game Loop
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            movePlayer();
+            moveMonsters();
+
+            drawPlayer();
+            drawMonsters();
+            drawTraps();
+
+            checkPlayerMonsterCollision();
+            checkMonsterTrapCollision();
+            checkPlayerTrapCollision();
+
+            if (gameOver) {
+                showGameOver();
+                return;
+            }
+
+            if (monsters.length === 0) {
+                gameRunning = false;
+                showGameOver();
+                gameOverText.textContent = "You Win!";
+                gameOverMessageText.textContent = "All monsters have been eliminated!";
+                return;
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+    </script>
+</body>
+</html>
+
